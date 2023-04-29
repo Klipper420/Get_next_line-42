@@ -1,87 +1,149 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   get_next_line_utils.c                              :+:      :+:    :+:   */
+/*   get_next_line.c                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: hhamoud <hhamoud@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2022/12/25 14:52:10 by hhamoud           #+#    #+#             */
-/*   Updated: 2023/03/25 17:42:27 by hhamoud          ###   ########.fr       */
+/*   Created: 2023/02/04 15:19:20 by hhamoud           #+#    #+#             */
+/*   Updated: 2023/04/29 14:51:03 by hhamoud          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "get_next_line.h"
 
-int ft_strlen(const char *s)
+char *join_free(char *s1, char *s2)
 {
-	int i;
-	
-	i = 0;
-	if (!s)
-		return (0);
-	while (s[i])
-	{
-		i++;
-	}
-	return(i);
+    char *new;
+    
+    new = ft_strjoin(s1, s2);
+    free(s1);
+    return (new);
 }
 
-char	*ft_strjoin(char const *s1, char const *s2)
+char *read_line(char *line, int fd)
 {
-	char	*ptr;
-	int		s_len;
-	int		ss_len;
+    char *nl;
+    int size;
+    char *buffer;
 
-	if (!s1)
-	return (NULL);
-	s_len = ft_strlen(s1);
-	ss_len = ft_strlen(s2);
-	ptr = malloc(sizeof(char) * (s_len + ss_len + 1));
-	if (!ptr)
-		return (NULL);
-	s_len = 0;
-	ss_len = 0;
-	while (s1 && s1[s_len] != '\0')
-	{
-		ptr[s_len] = s1[s_len];
-		s_len++;
-	}
-	while (s2[ss_len] != '\0')
-		ptr[s_len++] = s2[ss_len++];
-	ptr[s_len] = '\0';
-	return (ptr);
+    nl = ft_strchr(line, '\n');
+    buffer = (char *)malloc(sizeof(char) * (BUFFER_SIZE + 1));
+    if (!buffer)
+        return (0);
+    size = 1;
+    while (!nl && size)
+    {
+        size = read(fd, buffer, BUFFER_SIZE);
+        buffer[size] = 0;
+        line = join_free(line, buffer);
+        nl = ft_strchr(line, '\n');
+    }
+    free(buffer);
+    return (line);
 }
 
-char	*ft_strchr(const char *s, int c)
-{
-	int		i;
-	char	*temp;
 
-	i = 0;
-	if (!s)
-		return (0);
-	temp = (char *)s;
-	while (temp[i] != '\0' && temp[i] != (unsigned char)c)
-		i++;
-	if (temp[i] == (unsigned char)c)
-		return (temp + i);
-	return (0);
+/*
+
+line = '\0'
+line = "aki is stuid\nha"
+line = "hamza is sm\n"
+*/
+
+char *get_line(char *line)
+{
+    char *n_line;
+    char *rd;
+    int i;
+    n_line = ft_strchr(line,'\n');
+    if(!n_line)
+        return(line);
+   i = 0;     
+    while (line[i] != '\n')
+        i++;
+    if(line[i] && line[i] == '\n')
+        i++;
+    rd = malloc(sizeof (char) * (i + 1)); // +2 for adding a newline and null terminator
+    if(!rd)
+        return(0);
+    i = 0;
+    while(line[i] && line[i] != '\n')
+    {
+        rd[i] = line[i];
+        i++;
+    }
+    if (n_line)
+        rd[i++] = '\n';
+    rd[i] = '\0';
+    return (rd);
+    
+}
+// sddffds\nsdfd\0
+char *get_next(char *line)
+{
+    char *n_line;
+    char *rd;
+    int i;
+    
+    i = 0;
+    n_line = ft_strchr(line,'\n');
+    if(!n_line)
+    {
+        free(line);
+        return(0);
+    }
+   rd = malloc(sizeof (char) * (ft_strlen(n_line + 1) + 1));
+    if(!rd)
+    {
+        free(line);
+        return(0);
+    }
+    i = 0;
+    n_line++;
+    while(n_line[i])
+    {
+        rd[i] = n_line[i];
+        i++;
+    }
+    rd[i] = '\0';
+    free(line);
+    return(rd);
 }
 
-char	*ft_strdup(const char *s1)
+char *get_next_line(int fd)
 {
-	char	*dest;
-	int		i;
+    static char *line;
+    char *current;
 
-	i = 0;
-	dest = (char *)malloc(sizeof(*s1) * (ft_strlen(s1) + 1));
-	if (!dest)
-		return (NULL);
-	while (s1[i] != '\0')
-	{
-		dest[i] = s1[i];
-		i++;
-	}
-	dest[i] = '\0';
-	return (dest);
+    if (fd < 0 || fd > 256 || read(fd, 0, 0) == -1 || BUFFER_SIZE <= 0 || BUFFER_SIZE > 2147483647)
+    {
+        return (0);
+    }
+    if (!line)
+    {
+        line = ft_strdup("");
+    }
+    line = read_line(line, fd);
+    if (!line)
+        return (0);
+    current = get_line(line);
+    line = get_next(line);
+    return (current);
+}
+
+/*
+
+
+*/
+
+int main()
+{
+    int fd = open("fuk.txt", O_RDONLY);
+    // get_next_line(fd);
+    printf("%s", get_next_line(fd));
+    printf("%s", get_next_line(fd));
+   printf("%s", get_next_line(fd));
+   printf("%s", get_next_line(fd));
+    
 }
